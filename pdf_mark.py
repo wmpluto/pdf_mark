@@ -37,7 +37,7 @@ def add_watermark(content, origin, target):
     # Get the watermark file you just created
     # Get our files ready
     output_file = PdfFileWriter()
-    input_file = PdfFileReader(open(origin, "rb"))
+    input_file = PdfFileReader(open(origin, "rb"), strict=False)
 
     if input_file.getIsEncrypted():
         try:
@@ -83,7 +83,7 @@ def add_watermark(content, origin, target):
     # finally, write "output" to document-output.pdf
     with open(target, "wb") as outputStream:
         output_file.write(outputStream)
-
+        
 
 def main():
     if len(sys.argv[1:]):
