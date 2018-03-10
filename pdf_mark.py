@@ -5,24 +5,30 @@ from reportlab.pdfbase.ttfonts import TTFont
 from PyPDF2 import PdfFileWriter, PdfFileReader
 from io import BytesIO
 from math import atan, pi
-import sys, os
+import sys
+import os
+
+style_select = 1
 
 def create_watermark(content, width, height):
+    diagonal = {'x': 1/2, 'y':1/2, 'angle': atan(height/width)/pi*180, 'fontsize': 40}
+    horizontal = {'x': 1/2, 'y':0, 'angle': 0, 'fontsize': 30}
+    style =  diagonal if style_select else horizontal
     # 默认大小为21cm*29.7cm
     c = canvas.Canvas("mark.pdf", pagesize=(width*inch, height*inch))
     # 移动坐标原点(坐标系左下为(0,0))
-    c.translate(width/2*inch, height/2*inch)
+    c.translate(style['x']*width*inch, style['y']*height*inch)
     # 设置字体
     pdfmetrics.registerFont(TTFont('msyh', 'msyh.ttc'))
-    c.setFont("msyh", 40)
+    c.setFont("msyh", style['fontsize'])
     # 旋转45度，坐标系被旋转
-    c.rotate(atan(height/width)/pi*180)
+    c.rotate(style['angle'])
     # 指定填充颜色
     c.setFillColorRGB(0, 0, 0)
     # 设置透明度，1为不透明
     c.setFillAlpha(0.1)
     # 画几个文本，注意坐标系旋转的影响
-    c.drawCentredString(0.1*inch, 0*inch, content)
+    c.drawCentredString(0.1*inch, 0.1*inch, content)
     # c.save()
     return c.getpdfdata()
 
@@ -34,9 +40,13 @@ def add_watermark(content, origin, target):
     input_file = PdfFileReader(open(origin, "rb"))
 
     if input_file.getIsEncrypted():
-        input('the PDF is encrypted.')
-        return
-
+        try:
+            input_file.decrypt('')
+        except:
+            input('the PDF is encrypted.')
+            return
+            
+    # Get the outlines
     w = h = 0
     watermark = None
     # Number of pages in input document
@@ -57,16 +67,32 @@ def add_watermark(content, origin, target):
         # add page from input file to output document
         output_file.addPage(input_page)
 
+    # Copy bookmarks from input file to output file
+    def recursion(parent, outlines):
+        sub_parent = parent
+        for destination in outlines:
+            if hasattr(destination, 'title'):
+                sub_parent = output_file.addBookmark(destination.title,
+                                                     input_file.getDestinationPageNumber(
+                                                         destination),
+                                                     parent)
+            else:
+                recursion(sub_parent, destination)
+
+    recursion(None, input_file.outlines)
     # finally, write "output" to document-output.pdf
     with open(target, "wb") as outputStream:
         output_file.write(outputStream)
+
 
 def main():
     if len(sys.argv[1:]):
         if os.path.splitext(sys.argv[1])[1].lower() == '.pdf':
             pdf = sys.argv[1]
             content = 'Release to %s Under NDA' % input('Rlease to who: ')
-            add_watermark(content, pdf, os.path.dirname(pdf) + '/MCHP_' + os.path.basename(pdf))
+            add_watermark(content, pdf, os.path.dirname(
+                pdf) + '/MCHP_' + os.path.basename(pdf))
+
 
 if __name__ == '__main__':
     main()
