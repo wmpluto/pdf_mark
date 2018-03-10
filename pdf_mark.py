@@ -1,5 +1,3 @@
-# encoding=utf-8
-
 from reportlab.pdfgen import canvas
 from reportlab.lib.units import inch
 from reportlab.pdfbase import pdfmetrics
@@ -49,11 +47,11 @@ def add_watermark(content, origin, target):
         # merge the watermark with the page
         input_page = input_file.getPage(page_number)
         # get page size
-        if w != input_page.mediaBox[2]:
+        if abs(w - input_page.mediaBox[2]/72) > 5:
             w = input_page.mediaBox[2] / 72
             h = input_page.mediaBox[3] / 72
             watermark = PdfFileReader(
-                BytesIO(create_watermark(content, w, h)))
+                BytesIO(create_watermark(content, int(w), int(h))))
 
         input_page.mergePage(watermark.getPage(0))
         # add page from input file to output document
