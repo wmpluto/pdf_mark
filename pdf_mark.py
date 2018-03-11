@@ -67,6 +67,8 @@ def add_watermark(content, origin, target):
         # add page from input file to output document
         output_file.addPage(input_page)
 
+    # Remove links and annotations 
+    output_file.removeLinks()
     # Copy bookmarks from input file to output file
     def recursion(parent, outlines):
         sub_parent = parent
